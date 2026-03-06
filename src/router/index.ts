@@ -2,6 +2,7 @@ import { createRouter, createWebHistory } from 'vue-router'
 
 const HomePage = () => import('@/views/HomePage.vue')
 const HelloWorld = () => import('@/views/hello-world/index.vue')
+const NotFound = () => import('@/views/NotFound.vue')
 
 const DEFAULT_TITLE = 'vibe.j2team.org - J2TEAM Community Vibe Coding'
 const DEFAULT_DESCRIPTION =
@@ -27,6 +28,15 @@ const router = createRouter({
       meta: {
         title: 'Hello World - vibe.j2team.org',
         description: 'Trang mẫu đầu tiên của dự án vibe.j2team.org. Dùng trang này làm template để tạo trang của riêng bạn.',
+      },
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      name: 'not-found',
+      component: NotFound,
+      meta: {
+        title: '404 - Không tìm thấy trang | vibe.j2team.org',
+        description: 'Trang bạn tìm không tồn tại.',
       },
     },
   ],
