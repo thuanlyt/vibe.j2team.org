@@ -1,7 +1,12 @@
 <template>
-  <div class="flex flex-col items-center justify-center min-h-[80vh] bg-gray-900 text-white font-sans p-4 rounded-xl">
-    <h1 class="text-3xl font-bold mb-2 text-yellow-400">💣 Mini Bomberman</h1>
-    <p class="mb-4 text-gray-300 text-sm">Di chuyển: W A S D (hoặc Phím mũi tên) | Đặt bom: SPACE hoặc ENTER</p>
+  <div class="flex flex-col items-center justify-center min-h-[80vh] bg-gray-900 text-white font-sans p-4 rounded-xl relative">
+    
+    <router-link to="/" class="absolute top-4 left-4 flex items-center gap-2 text-gray-400 hover:text-white transition-colors bg-gray-800 px-3 py-1.5 rounded-lg text-sm">
+      <span>←</span> Quay lại
+    </router-link>
+
+    <h1 class="text-3xl font-bold mb-2 text-yellow-400 mt-8">💣 Mini Bomberman</h1>
+    <p class="mb-4 text-gray-300 text-sm text-center">Di chuyển: W A S D (hoặc Phím mũi tên) | Đặt bom: SPACE hoặc ENTER</p>
     
     <div v-if="gameOver" class="mb-4 text-xl font-bold p-2 rounded" :class="won ? 'bg-green-500' : 'bg-red-500'">
       {{ won ? '🏆 BẠN ĐÃ THẮNG!' : '💀 GAME OVER!' }}
@@ -46,9 +51,9 @@ const initGame = () => {
   for (let y = 0; y < size; y++) {
     for (let x = 0; x < size; x++) {
       if (x % 2 !== 0 && y % 2 !== 0) {
-        newBoard[y][x] = 1; // Tường cứng
+        newBoard[y][x] = 1;
       } else if (Math.random() < 0.3 && !(x < 2 && y < 2) && !(x > size - 3 && y > size - 3)) {
-        newBoard[y][x] = 2; // Thùng mềm
+        newBoard[y][x] = 2;
       }
     }
   }
@@ -59,7 +64,7 @@ const initGame = () => {
   won.value = false;
   
   if (botInterval) clearInterval(botInterval);
-  botInterval = setInterval(moveBot, 800); // Bot di chuyển mỗi 0.8s
+  botInterval = setInterval(moveBot, 800);
 };
 
 const getEmoji = (x: number, y: number, cell: number) => {
@@ -140,7 +145,7 @@ const moveBot = () => {
 
 const checkCollision = () => {
   if (player.value.x === bot.value.x && player.value.y === bot.value.y) {
-    endGame(false); // Chạm bot là thua
+    endGame(false);
   }
 };
 
@@ -172,7 +177,7 @@ const handleKeydown = (e: KeyboardEvent) => {
 const gameBoard = ref<HTMLElement | null>(null);
 onMounted(() => {
   initGame();
-  gameBoard.value?.focus(); // Tự động bắt sự kiện bàn phím
+  gameBoard.value?.focus();
 });
 onUnmounted(() => {
   if (botInterval) clearInterval(botInterval);
