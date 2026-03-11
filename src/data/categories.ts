@@ -25,10 +25,28 @@ export const categories: readonly Category[] = [
     description: 'Game giải trí, thử thách, đối kháng, puzzle...',
   },
   {
+    id: 'fun',
+    label: 'Giải trí',
+    icon: 'lucide:party-popper',
+    description: 'Ứng dụng vui vẻ, hài hước, giải trí nhẹ nhàng...',
+  },
+  {
     id: 'tool',
     label: 'Công cụ',
     icon: 'lucide:wrench',
     description: 'Tiện ích lập trình, chuyển đổi, xử lý dữ liệu, generator...',
+  },
+  {
+    id: 'learn',
+    label: 'Học tập & Năng suất',
+    icon: 'lucide:graduation-cap',
+    description: 'Flashcard, ngoại ngữ, toán/logic, quản lý thời gian...',
+  },
+  {
+    id: 'spiritual',
+    label: 'Tâm linh',
+    icon: 'lucide:sparkles',
+    description: 'Tử vi, phong thủy, tarot, cung hoàng đạo, ngũ hành...',
   },
   {
     id: 'creative',
@@ -37,16 +55,10 @@ export const categories: readonly Category[] = [
     description: 'Làm nhạc, vẽ pixel art, tạo thơ/lyrics, thiết kế màu sắc...',
   },
   {
-    id: 'fun',
-    label: 'Giải trí',
-    icon: 'lucide:party-popper',
-    description: 'Ứng dụng vui vẻ, hài hước, giải trí nhẹ nhàng...',
-  },
-  {
-    id: 'learn',
-    label: 'Học tập & Năng suất',
-    icon: 'lucide:graduation-cap',
-    description: 'Flashcard, ngoại ngữ, toán/logic, quản lý thời gian...',
+    id: 'connect',
+    label: 'Xã hội & Kết nối',
+    icon: 'lucide:users',
+    description: 'Chat, quiz nhiều người, phòng ảo, chia sẻ ẩn danh, cộng tác...',
   },
   {
     id: 'health',
@@ -59,18 +71,6 @@ export const categories: readonly Category[] = [
     label: 'Tài chính',
     icon: 'lucide:wallet',
     description: 'Chia bill nhóm, tracker chi tiêu, tính lãi suất, đổi tiền...',
-  },
-  {
-    id: 'spiritual',
-    label: 'Tâm linh',
-    icon: 'lucide:sparkles',
-    description: 'Tử vi, phong thủy, tarot, cung hoàng đạo, ngũ hành...',
-  },
-  {
-    id: 'connect',
-    label: 'Xã hội & Kết nối',
-    icon: 'lucide:users',
-    description: 'Chat, quiz nhiều người, phòng ảo, chia sẻ ẩn danh, cộng tác...',
   },
   {
     id: 'other',
