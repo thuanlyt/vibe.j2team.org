@@ -20,8 +20,15 @@ const bot = ref({ x: size - 1, y: size - 1, alive: true })
 const gameOver = ref(false)
 const won = ref(false)
 
+// ĐỒNG HỒ TRỌNG TÀI - Cố định tốc độ cho cả Bot và Người (ms/bước)
+const GAME_SPEED = 400 
+
 let botInterval: ReturnType<typeof setInterval> | null = null
 let botLastBombTime = 0
+
+let playerMoveInterval: ReturnType<typeof setInterval> | null = null
+const activeKeys = new Set<string>()
+let lastPlayerMoveTime = 0 // Biến để khóa tốc độ người chơi
 
 const dirs: [number, number][] = [
   [0, 1],
@@ -53,9 +60,18 @@ function initGame(): void {
   gameOver.value = false
   won.value = false
   botLastBombTime = 0
+  activeKeys.clear()
+  lastPlayerMoveTime = 0
 
+  // 1. Bot di chuyển theo đúng GAME_SPEED
   if (botInterval) clearInterval(botInterval)
-  botInterval = setInterval(botThink, 600)
+  botInterval = setInterval(botThink, GAME_SPEED)
+
+  // 2. Vòng lặp nhận phím người chơi (chạy nhanh để mượt, nhưng tốc độ di chuyển bị giới hạn bởi GAME_SPEED)
+  if (playerMoveInterval) clearInterval(playerMoveInterval)
+  playerMoveInterval = setInterval(() => {
+    if (activeKeys.size > 0) processPlayerMove()
+  }, 50)
 
   // Đảm bảo gameBoard tự động nhận phím sau khi khởi tạo
   nextTick(() => {
@@ -65,7 +81,7 @@ function initGame(): void {
 
 function getEmoji(x: number, y: number, cell: number) {
   if (cell === 4) return "🔥"
-  if (player.value.alive && player.value.x === x && player.value.y === y) return "🧑"
+  if (player.value.alive && player.value.x === x && player.value.y === y) return "🧑‍🚀"
   if (bot.value.alive && bot.value.x === x && bot.value.y === y) return "🤖"
   if (cell === 1) return ""
   if (cell === 2) return "📦"
@@ -74,32 +90,38 @@ function getEmoji(x: number, y: number, cell: number) {
 }
 
 function getTileClass(cell: number) {
-  if (cell === 1) return "bg-gray-700 border-gray-900 shadow-inner" // Tường cứng
-  if (cell === 2) return "bg-yellow-800 border-yellow-900" // Thùng mềm
-  if (cell === 4) return "bg-orange-500 opacity-80" // Lửa
-  return "bg-gray-800 bg-opacity-40 border-gray-800 border-opacity-50" // Sàn trống
+  if (cell === 1) return "bg-gray-700 border-gray-900 shadow-inner"
+  if (cell === 2) return "bg-yellow-800 border-yellow-900"
+  if (cell === 4) return "bg-orange-500 opacity-80"
+  return "bg-gray-800 bg-opacity-40 border-gray-800 border-opacity-50"
 }
 
 function move(dx: number, dy: number) {
   if (gameOver.value) return
+  
+  // CHỐT CHẶN: Ép người chơi phải tuân thủ GAME_SPEED để công bằng với Bot
+  const now = Date.now()
+  if (now - lastPlayerMoveTime < GAME_SPEED) return 
+
   const nx = player.value.x + dx
   const ny = player.value.y + dy
 
-  if (nx >= 0 && nx < size && ny >= 0 && ny < size && board.value[ny][nx] === 0) {
+  if (nx >= 0 && nx < size && ny >= 0 && ny < size && board.value[ny]![nx] === 0) {
     player.value.x = nx
     player.value.y = ny
+    lastPlayerMoveTime = now // Lưu lại thời gian vừa bước đi
     checkCollision()
   }
 }
 
 function placeBomb(px: number, py: number) {
-  if (board.value[py][px] !== 0) return
-  board.value[py][px] = 3
+  if (board.value[py]![px] !== 0) return
+  board.value[py]![px] = 3
   setTimeout(() => explode(px, py), 1800)
 }
 
 function explode(cx: number, cy: number) {
-  board.value[cy][cx] = 4
+  board.value[cy]![cx] = 4
 
   dirs.forEach(([dx, dy]) => {
     for (let i = 1; i <= 2; i++) {
@@ -107,35 +129,35 @@ function explode(cx: number, cy: number) {
       const ny = cy + dy * i
 
       if (nx < 0 || ny < 0 || nx >= size || ny >= size) break
-      if (board.value[ny][nx] === 1) break // Gặp tường cứng thì dừng
-      if (board.value[ny][nx] === 2) {
-        board.value[ny][nx] = 4 // Phá thùng rồi dừng
+      if (board.value[ny]![nx] === 1) break
+      if (board.value[ny]![nx] === 2) {
+        board.value[ny]![nx] = 4
         break
       }
-      board.value[ny][nx] = 4
+      board.value[ny]![nx] = 4
     }
   })
 
   checkCasualties()
-  board.value = [...board.value] // Force update reactivity
+  board.value = [...board.value]
 
   setTimeout(() => {
-    board.value[cy][cx] = 0
+    board.value[cy]![cx] = 0
     dirs.forEach(([dx, dy]) => {
       for (let i = 1; i <= 2; i++) {
         const nx = cx + dx * i
         const ny = cy + dy * i
         if (nx < 0 || ny < 0 || nx >= size || ny >= size) break
-        if (board.value[ny][nx] === 4) board.value[ny][nx] = 0
+        if (board.value[ny]![nx] === 4) board.value[ny]![nx] = 0
       }
     })
-    board.value = [...board.value] // Force update reactivity khi lửa tắt
+    board.value = [...board.value]
   }, 600)
 }
 
 function checkCasualties() {
-  if (board.value[player.value.y][player.value.x] === 4) endGame(false)
-  if (board.value[bot.value.y][bot.value.x] === 4) {
+  if (board.value[player.value.y]![player.value.x] === 4) endGame(false)
+  if (board.value[bot.value.y]![bot.value.x] === 4) {
     bot.value.alive = false
     endGame(true)
   }
@@ -151,10 +173,44 @@ function endGame(win: boolean) {
   gameOver.value = true
   won.value = win
   if (botInterval) clearInterval(botInterval)
+  if (playerMoveInterval) clearInterval(playerMoveInterval)
+  activeKeys.clear()
 }
 
 /* ---------------- */
-/* BOT AI */
+/* PLAYER MOVEMENT  */
+/* ---------------- */
+
+function processPlayerMove() {
+  if (gameOver.value) return
+  let dx = 0, dy = 0
+  if (activeKeys.has('ArrowUp') || activeKeys.has('w') || activeKeys.has('W')) dy = -1
+  else if (activeKeys.has('ArrowDown') || activeKeys.has('s') || activeKeys.has('S')) dy = 1
+  else if (activeKeys.has('ArrowLeft') || activeKeys.has('a') || activeKeys.has('A')) dx = -1
+  else if (activeKeys.has('ArrowRight') || activeKeys.has('d') || activeKeys.has('D')) dx = 1
+
+  if (dx !== 0 || dy !== 0) {
+    move(dx, dy) // Truyền vào hàm move đã được bảo vệ bởi chốt chặn GAME_SPEED
+  }
+}
+
+function handleKeydown(e: KeyboardEvent) {
+  if (['ArrowUp', 'w', 'W', 'ArrowDown', 's', 'S', 'ArrowLeft', 'a', 'A', 'ArrowRight', 'd', 'D'].includes(e.key)) {
+    if (!activeKeys.has(e.key)) {
+      activeKeys.add(e.key)
+      processPlayerMove()
+    }
+  } else if (e.key === ' ' || e.key === 'Enter') {
+    placeBomb(player.value.x, player.value.y)
+  }
+}
+
+function handleKeyup(e: KeyboardEvent) {
+  activeKeys.delete(e.key)
+}
+
+/* ---------------- */
+/* BOT AI           */
 /* ---------------- */
 
 function botThink() {
@@ -173,19 +229,19 @@ function botThink() {
     }
 
     // Di chuyển
-    if (next && board.value[next.y][next.x] === 0) {
+    if (next && board.value[next.y]![next.x] === 0) {
       bot.value.x = next.x
       bot.value.y = next.y
       checkCollision()
     }
   } else {
-    // Kịch bản né bom cơ bản: di chuyển ngẫu nhiên đến ô an toàn nếu kẹt
+    // Kịch bản né bom cơ bản
     const safeMoves = dirs
       .map(([dx, dy]) => ({ x: bot.value.x + dx, y: bot.value.y + dy }))
-      .filter(m => m.x >= 0 && m.x < size && m.y >= 0 && m.y < size && board.value[m.y][m.x] === 0)
+      .filter(m => m.x >= 0 && m.x < size && m.y >= 0 && m.y < size && board.value[m.y]![m.x] === 0)
     
     if (safeMoves.length > 0) {
-      const move = safeMoves[Math.floor(Math.random() * safeMoves.length)]
+      const move = safeMoves[Math.floor(Math.random() * safeMoves.length)]!
       bot.value.x = move.x
       bot.value.y = move.y
       checkCollision()
@@ -213,8 +269,7 @@ function findPath(sx: number, sy: number, tx: number, ty: number) {
       const ny = node.y + dy
 
       if (nx < 0 || ny < 0 || nx >= size || ny >= size) continue
-      // Coi tường, thùng và BOM (3) là vật cản để Bot biết né bom
-      if (board.value[ny][nx] !== 0) continue
+      if (board.value[ny]![nx] !== 0) continue
 
       queue.push({ x: nx, y: ny, path: newPath })
     }
@@ -222,41 +277,13 @@ function findPath(sx: number, sy: number, tx: number, ty: number) {
   return []
 }
 
-/* ---------------- */
-
-function handleKeydown(e: KeyboardEvent) {
-  switch (e.key) {
-    case "ArrowUp":
-    case "w": case "W":
-      move(0, -1)
-      break
-    case "ArrowDown":
-    case "s": case "S":
-      move(0, 1)
-      break
-    case "ArrowLeft":
-    case "a": case "A":
-      move(-1, 0)
-      break
-    case "ArrowRight":
-    case "d": case "D":
-      move(1, 0)
-      break
-    case " ":
-    case "Enter":
-      placeBomb(player.value.x, player.value.y)
-      break
-  }
-}
-
-const gameBoard = ref<HTMLElement | null>(null)
-
 onMounted(() => {
   initGame()
 })
 
 onUnmounted(() => {
   if (botInterval) clearInterval(botInterval)
+  if (playerMoveInterval) clearInterval(playerMoveInterval)
 })
 </script>
 
@@ -284,7 +311,9 @@ onUnmounted(() => {
         <div 
           ref="gameBoard" 
           tabindex="0" 
-          @keydown.prevent="handleKeydown" 
+          @keydown.prevent="handleKeydown"
+          @keyup.prevent="handleKeyup"
+          @blur="activeKeys.clear()"
           class="bg-gray-800 p-2 sm:p-3 rounded-xl shadow-2xl border-2 border-gray-700 outline-none focus:border-green-500 transition-colors"
         >
           <div v-for="(row, y) in board" :key="y" class="flex">
@@ -307,7 +336,7 @@ onUnmounted(() => {
           <div></div>
           
           <button class="bg-gray-700 h-12 rounded-lg active:bg-gray-600 active:scale-95 transition-all shadow-md flex items-center justify-center text-xl" @click="move(-1,0)">◀️</button>
-          <button class="bg-red-900/80 border-2 border-red-500 h-12 rounded-lg active:bg-red-700 active:scale-95 transition-all shadow-lg flex items-center justify-center text-xl animate-pulse" @click="placeBomb(player.value.x, player.value.y)">💣</button>
+          <button class="bg-red-900/80 border-2 border-red-500 h-12 rounded-lg active:bg-red-700 active:scale-95 transition-all shadow-lg flex items-center justify-center text-xl animate-pulse" @click="placeBomb(player.x, player.y)">💣</button>
           <button class="bg-gray-700 h-12 rounded-lg active:bg-gray-600 active:scale-95 transition-all shadow-md flex items-center justify-center text-xl" @click="move(1,0)">▶️</button>
           
           <div></div>
